@@ -2,22 +2,18 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"gosolid/internal/general"
-	"gosolid/internal/repository"
-	"gosolid/internal/user"
-	"gosolid/pkg/database"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
-	"strconv"
+	"sambhav/internal/general"
+	"sambhav/internal/repository"
+	"sambhav/internal/user"
+	"sambhav/pkg/database"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -27,31 +23,27 @@ import (
 )
 
 func main() {
-	serverPort, _ := strconv.Atoi(os.Getenv("SERVER_PORT"))
-	databaseName := os.Getenv("DB_DATABASE")
-	password := os.Getenv("DB_PASSWORD")
-	username := os.Getenv("DB_USERNAME")
-	host := os.Getenv("DB_HOST")
-	dbport, _ := strconv.Atoi(os.Getenv("DB_PORT"))
-	schema := os.Getenv("DB_SCHEMA")
+	cfg, err := EnvVars()
+	if err != nil {
+		log.Fatalf("Error parsing environment variables: %v", err)
+	}
+
+	serverPort := cfg.ServerPort
 
 	// Declare a flag to run migrations only
-	migrateFlag := flag.Bool("migrate", false, "run migrations only")
-	// Parse the flags
-	flag.Parse()
-
-	if *migrateFlag {
-		migrateDatabase(username, password, host, databaseName, schema, dbport)
-		return
-	}
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
 
-	dbInst, db := database.NewDatabasePg(username, password, host, databaseName, schema, dbport)
+	dbInst := database.NewDatabaseMongo(
+		cfg.DatabaseUser,
+		cfg.DatabasePassword,
+		cfg.DatabaseHost,
+		cfg.DatabaseName,
+		cfg.DatabaseAppName)
 
 	newServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", serverPort),
-		Handler: registerRoutes(dbInst, db),
+		Handler: registerRoutes(dbInst),
 	}
 	// Run graceful shutdown in a separate goroutine
 	go gracefulShutdown(done, newServer, dbInst)
@@ -66,14 +58,13 @@ func main() {
 	log.Println("Graceful shutdown complete.")
 }
 
-func registerRoutes(dbInst database.Database, db *pgx.Conn) *gin.Engine {
-	// Declare Router
-	queries := repository.New(db)
+func registerRoutes(dbInst database.Database) *gin.Engine {
 
 	// declare generic handlers
 	generalHandlers := general.NewGeneralHandler(dbInst)
 	// declare user handlers
-	userService := user.NewUserService(queries)
+	userRepository := repository.NewUserRepository(dbInst)
+	userService := user.NewUserService(userRepository)
 	userHandlers := user.NewUserHandler(userService)
 
 	router := gin.Default()
@@ -98,9 +89,7 @@ func gracefulShutdown(done chan bool, server *http.Server, db database.Database)
 	log.Println("shutting down gracefully, press Ctrl+C again to force")
 
 	// shut down any database connections
-	if err := db.Close(); err != nil {
-		log.Printf("Database unable to stop with error: %v", err)
-	}
+	db.Close()
 
 	// The context is used to inform the server it has 5 seconds to finish
 	// the request it is currently handling

@@ -52,8 +52,4 @@ watch:
             fi; \
         fi
 
-migrate:
-	@echo "Migrating..."
-	@go run cmd/main.go -migrate
-
-.PHONY: all build run clean watch docker-run docker-down migrate
+.PHONY: all build run clean watch docker-run docker-down

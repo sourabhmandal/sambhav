@@ -1,8 +1,8 @@
 package general
 
 import (
-	"gosolid/pkg/database"
 	"net/http"
+	"sambhav/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )

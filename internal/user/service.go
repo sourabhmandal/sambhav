@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"gosolid/internal/repository"
+	"sambhav/internal/repository"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -18,10 +18,10 @@ type UserService interface {
 }
 
 type userServiceSqlc struct {
-	userRepository repository.Querier
+	userRepository repository.UserService
 }
 
-func NewUserService(userRepo repository.Querier) UserService {
+func NewUserService(userRepo repository.UserService) UserService {
 	return &userServiceSqlc{userRepository: userRepo}
 }
 
