@@ -5,12 +5,14 @@ import (
 )
 
 type config struct {
-	ServerPort       int    `env:"SERVER_PORT"`
-	DatabaseHost     string `env:"DATABASE_HOST"`
-	DatabaseName     string `env:"DATABASE_NAME"`
-	DatabaseAppName  string `env:"DATABASE_APP_NAME"`
-	DatabaseUser     string `env:"DATABASE_USER"`
-	DatabasePassword string `env:"DATABASE_PASSWORD"`
+	ServerPort         int    `env:"SERVER_PORT"`
+	DatabaseHost       string `env:"DATABASE_HOST"`
+	DatabaseName       string `env:"DATABASE_NAME"`
+	DatabaseAppName    string `env:"DATABASE_APP_NAME"`
+	DatabaseUser       string `env:"DATABASE_USER"`
+	DatabasePassword   string `env:"DATABASE_PASSWORD"`
+	GoogleClientID     string `env:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET"`
 }
 
 func EnvVars() (*config, error) {
