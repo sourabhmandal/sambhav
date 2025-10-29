@@ -5,33 +5,34 @@ import (
 	"errors"
 	"fmt"
 	"sambhav/internal/repository"
-	"strconv"
+	"sambhav/pkg/database"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/net/context"
 )
 
 type UserService interface {
 	RegisterUser(ctx context.Context, name, email string) error
-	GetAllUsers(ctx context.Context) ([]*repository.User, error)
-	GetUserByID(ctx context.Context, userID string) (*repository.User, error)
-	// Other methods...
+	GetAllUsers(ctx context.Context) ([]*database.User, error)
+	GetUserByID(ctx context.Context, userID string) (*database.User, error)
 }
 
-type userServiceSqlc struct {
+type userService struct {
 	userRepository repository.UserService
 }
 
 func NewUserService(userRepo repository.UserService) UserService {
-	return &userServiceSqlc{userRepository: userRepo}
+	return &userService{userRepository: userRepo}
 }
 
 // RegisterUser registers a new user in the system.
-func (u *userServiceSqlc) RegisterUser(ctx context.Context, name, email string) error {
+func (u *userService) RegisterUser(ctx context.Context, name, email string) error {
 	// Check if the user already exists based on email
 	existingUser, err := u.userRepository.GetUserByEmail(ctx, email)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// Create a new user in the schema
-		_, err = u.userRepository.CreateUser(ctx, &repository.CreateUserParams{
+		_, err = u.userRepository.CreateUser(ctx, &database.User{
+			ID:    primitive.NewObjectID(),
 			Email: email,
 			Name:  name,
 			Bio:   nil, // Assuming empty bio for new user
@@ -49,7 +50,7 @@ func (u *userServiceSqlc) RegisterUser(ctx context.Context, name, email string) 
 }
 
 // GetUserByID retrieves a user by their ID.
-func (u *userServiceSqlc) GetAllUsers(ctx context.Context) ([]*repository.User, error) {
+func (u *userService) GetAllUsers(ctx context.Context) ([]*database.User, error) {
 
 	// Get the user by ID from the schema
 	users, err := u.userRepository.ListAllUsers(ctx)
@@ -63,15 +64,9 @@ func (u *userServiceSqlc) GetAllUsers(ctx context.Context) ([]*repository.User, 
 }
 
 // GetUserByID retrieves a user by their ID.
-func (u *userServiceSqlc) GetUserByID(ctx context.Context, userID string) (*repository.User, error) {
-	// Convert userID to int64 if necessary
-	id, err := strconv.ParseInt(userID, 10, 64)
-	if err != nil {
-		return nil, errors.New("invalid user ID")
-	}
-
+func (u *userService) GetUserByID(ctx context.Context, userID string) (*database.User, error) {
 	// Get the user by ID from the schema
-	user, err := u.userRepository.GetUserById(ctx, id)
+	user, err := u.userRepository.GetUserById(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
