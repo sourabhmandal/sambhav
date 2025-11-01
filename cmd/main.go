@@ -6,9 +6,11 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"sambhav/internal/auth"
 	"sambhav/internal/general"
 	"sambhav/internal/repository"
 	"sambhav/internal/user"
+	abpkg "sambhav/pkg/authboss"
 	"sambhav/pkg/database"
 	"sambhav/pkg/env"
 	"syscall"
@@ -75,6 +77,13 @@ func registerRoutes(dbInst database.Database) *gin.Engine {
 	userRouter.POST("/", userHandlers.RegisterUser)
 	userRouter.GET("/", userHandlers.GetAllUsers)
 
+	router.Any("/authboss", gin.WrapH(http.StripPrefix("/authboss", abpkg.Router())))
+
+	// API auth endpoints that proxy into authboss
+	authHandler := auth.NewAuthHandler()
+	apiAuth := router.Group("/api/auth")
+	apiAuth.POST("/login", authHandler.Login)
+	apiAuth.POST("/google/callback", authHandler.GoogleCallback)
 	return router
 }
 
